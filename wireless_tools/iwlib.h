@@ -186,6 +186,8 @@ typedef struct wireless_config
   char		essid[IW_ESSID_MAX_SIZE + 1];	/* ESSID (extended network) */
   int		has_mode;
   int		mode;			/* Operation mode */
+  int		has_auth;
+  int		auth;
 } wireless_config;
 
 /* Structure for storing all wireless information for each device

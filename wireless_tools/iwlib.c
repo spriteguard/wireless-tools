@@ -2906,6 +2906,45 @@ iw_extract_event_stream(struct stream_descr *	stream,	/* Stream of events */
   return(1);
 }
 
+static inline int process_genie(unsigned char *buf, int len, int *auth_type)
+{
+  int offset = 0;
+  while (offset <= len-2)
+  {
+    int ielen = buf[offset+1] + 2;
+
+    if (ielen > len)
+      ielen = len;
+
+    switch (buf[offset]) {
+      case 0x30:
+        if (ielen < 4) {
+          break;
+        }
+
+        (*auth_type) |= 0x02;
+        break;
+
+      case 0xdd:
+        if ((ielen < 8)
+            || memcmp(&buf[offset + 2], "\x00\x50\xf2", 3)
+            || (buf[offset + 5] != 0x01)) {
+          break;
+        }
+
+        (*auth_type) |= 0x01;
+        break;
+
+      default:
+        break;
+    }
+
+    offset += ielen;
+  }
+
+  return ((*auth_type) ? 1 : 0);
+}
+
 /*********************** SCANNING SUBROUTINES ***********************/
 /*
  * The Wireless Extension API 14 and greater define Wireless Scanning.
@@ -3010,6 +3049,9 @@ iw_process_scanning_token(struct iw_event *		event,
 	  wscan->has_maxbitrate = 1;
 	  memcpy(&(wscan->maxbitrate), &(event->u.bitrate), sizeof(iwparam));
 	}
+      break;
+    case IWEVGENIE:
+      wscan->b.has_auth = process_genie(event->u.data.pointer, event->len, &wscan->b.auth);
     case IWEVCUSTOM:
       /* How can we deal with those sanely ? Jean II */
     default:
